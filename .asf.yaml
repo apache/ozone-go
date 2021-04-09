@@ -27,11 +27,8 @@ github:
     master:
       required_status_checks:
         contexts:
-          - cli
-          - fuse
-          - library
       required_pull_request_reviews:
-        required_approving_review_count: 1
+        required_approving_review_count: 0
 notifications:
   commits:      commits@ozone.apache.org
   issues:       issues@ozone.apache.org
