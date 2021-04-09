@@ -23,15 +23,6 @@ github:
     squash:  true
     merge:   false
     rebase:  false
-  protected_branches:
-    master:
-      required_status_checks:
-        contexts:
-          - cli
-          - fuse
-          - library
-      required_pull_request_reviews:
-        required_approving_review_count: 1
 notifications:
   commits:      commits@ozone.apache.org
   issues:       issues@ozone.apache.org
