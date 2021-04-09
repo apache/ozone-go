@@ -15,9 +15,13 @@
 # limitations under the License.
 set -e
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-cd "$DIR" || exit 1
-
-rm ozone.so || true
-rm ozone.h || true
-go build -o ozone.so -buildmode=c-shared lib.go
+grep --text -r -L \
+   --exclude-dir=.git \
+   --exclude-dir=.idea \
+   --exclude=LICENSE \
+   --exclude=go.sum \
+   --exclude=NOTICE.txt \
+   --exclude=.gitignore \
+   --exclude=README.md \
+   --exclude-dir=api/proto \
+  http://www.apache.org/licenses/LICENSE-2.0
