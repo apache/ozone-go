@@ -1,8 +1,0 @@
-.idea
-vendor
-ozone.so
-ozone.h
-lib/lib
-lib/lib.h
-cli/ozone-go
-fuse/ozone-fuse/ozone-fuse
