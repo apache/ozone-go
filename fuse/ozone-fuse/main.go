@@ -104,7 +104,6 @@ func (me *OzoneFs) Open(name string, flags uint32, context *fuse.Context) (file 
 	return CreateOzoneFile(me.ozoneClient, key), fuse.OK
 }
 
-
 func main() {
 	app := cli.NewApp()
 	app.Name = "ozone-fuse"

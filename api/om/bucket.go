@@ -28,7 +28,6 @@ func (om *OmClient) CreateBucket(volume string, bucket string) error {
 		VolumeName:       &volume,
 		IsVersionEnabled: &isVersionEnabled,
 		StorageType:      &storageType,
-
 	}
 	req := ozone_proto.CreateBucketRequest{
 		BucketInfo: &bucketInfo,
@@ -101,5 +100,3 @@ func (om *OmClient) ListBucket(volume string) ([]common.Bucket, error) {
 	}
 	return res, nil
 }
-
-

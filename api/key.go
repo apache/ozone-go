@@ -128,7 +128,7 @@ func (ozoneClient *OzoneClient) PutKey(volume string, bucket string, key string,
 	blockId := ConvertBlockId(location.BlockID)
 	eof := false
 
-	for ; ; {
+	for {
 		blockOffset := uint64(0)
 		for i := 0; i < 64; i++ {
 			count, err := source.Read(buffer)

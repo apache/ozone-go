@@ -83,7 +83,7 @@ func (om *OmClient) ListKeys(volume string, bucket string) ([]*ozone_proto.KeyIn
 
 }
 
-func (om *OmClient) AllocateBlock(volume string, bucket string, key string, clientID *uint64) (*ozone_proto.AllocateBlockResponse,error) {
+func (om *OmClient) AllocateBlock(volume string, bucket string, key string, clientID *uint64) (*ozone_proto.AllocateBlockResponse, error) {
 	req := ozone_proto.AllocateBlockRequest{
 		KeyArgs: &ozone_proto.KeyArgs{
 			VolumeName: &volume,
@@ -199,7 +199,7 @@ func ptr(s string) *string {
 	return &s
 }
 
-func (om *OmClient) submitRequest(request *ozone_proto.OMRequest, ) (*ozone_proto.OMResponse, error) {
+func (om *OmClient) submitRequest(request *ozone_proto.OMRequest) (*ozone_proto.OMResponse, error) {
 	wrapperResponse := ozone_proto.OMResponse{}
 	om.mu.Lock()
 	err := om.client.Call(gohadoop.GetCalleeRPCRequestHeaderProto(&OM_PROTOCOL), request, &wrapperResponse)
@@ -212,4 +212,3 @@ func (om *OmClient) submitRequest(request *ozone_proto.OMRequest, ) (*ozone_prot
 	}
 	return &wrapperResponse, nil
 }
-

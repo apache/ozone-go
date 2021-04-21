@@ -50,9 +50,7 @@ func main() {
 			Name:    "volume",
 			Aliases: []string{"v", "vol"},
 			Usage:   "Ozone volume related operations",
-			Flags: []cli.Flag{
-
-			},
+			Flags:   []cli.Flag{},
 			Subcommands: []cli.Command{
 				{
 					Name:    "list",
@@ -90,9 +88,7 @@ func main() {
 			Name:    "bucket",
 			Aliases: []string{"b"},
 			Usage:   "Ozone bucket related operations",
-			Flags: []cli.Flag{
-
-			},
+			Flags:   []cli.Flag{},
 			Subcommands: []cli.Command{
 				{
 					Name:    "create",
@@ -131,9 +127,7 @@ func main() {
 			Name:    "key",
 			Aliases: []string{"k"},
 			Usage:   "Ozone key related operations",
-			Flags: []cli.Flag{
-
-			},
+			Flags:   []cli.Flag{},
 			Subcommands: []cli.Command{
 				{
 					Name:    "list",

@@ -54,9 +54,6 @@ func TestOzoneClientBucketCreateGet(t *testing.T) {
 
 	time.Sleep(4 * time.Second)
 
-
-
-
 	err = client.CreateBucket(volumeName, bucketName)
 	assert.Nil(t, err)
 
