@@ -82,13 +82,6 @@ func (dnClient *DatanodeClient) connectToNext() error {
 
 	client, err := dnapi.NewXceiverClientProtocolServiceClient(conn).Send(dnClient.ctx)
 	dnClient.standaloneClient = &client
-	//
-	//client, err := ratis.NewRaftClientProtocolServiceClient(conn).Unordered(dnClient.ctx)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//dnClient.ratisClient = &client
-	//go dnClient.RaftReceiver()
 	go dnClient.StandaloneReceive()
 	return nil
 }
