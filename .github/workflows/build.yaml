@@ -28,17 +28,6 @@ jobs:
           go-version: 1.15
       - name: Run a full build
         run: cli/build.sh
-  fuse:
-    runs-on: ubuntu-18.04
-    steps:
-      - name: Checkout project
-        uses: actions/checkout@v2
-      - name: Set up Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.15
-      - name: Run a full build
-        run: fuse/build.sh
   library:
     runs-on: ubuntu-18.04
     steps:
