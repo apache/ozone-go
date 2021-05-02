@@ -17,9 +17,6 @@
  */
 syntax = "proto3";
 option go_package = "github.com/apache/ozone-go/api/proto/ratis";
-option java_package = "org.apache.ratis.proto.grpc";
-option java_outer_classname = "GrpcProtos";
-option java_generate_equals_and_hash = true;
 package ratis.grpc;
 
 import "raft.proto";
