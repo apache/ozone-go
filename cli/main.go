@@ -191,7 +191,7 @@ func main() {
 					Action: func(c *cli.Context) error {
 						ozoneClient := api.CreateOzoneClient(c.GlobalString("om"))
 						address := OzoneObjectAddressFromString(c.Args().Get(0))
-						f, err := os.Open(c.Args().Get(1)
+						f, err := os.Open(c.Args().Get(1))
 						if err != nil {
 							return err
 						}
