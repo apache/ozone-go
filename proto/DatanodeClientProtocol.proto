@@ -26,6 +26,9 @@
 // to and from the datanode.
 syntax = "proto2";
 option go_package = "github.com/apache/ozone-go/api/proto/datanode";
+option java_package = "org.apache.hadoop.hdds.protocol.datanode.proto";
+option java_outer_classname = "ContainerProtos";
+option java_generate_equals_and_hash = true;
 package hadoop.hdds.datanode;
 
 /**
@@ -143,6 +146,7 @@ enum Result {
   CONTAINER_MISSING = 40;
   BLOCK_TOKEN_VERIFICATION_FAILED = 41;
   ERROR_IN_DB_SYNC = 42;
+  CHUNK_FILE_INCONSISTENCY = 43;
 }
 
 /**
@@ -194,7 +198,9 @@ message ContainerCommandRequestProto {
   optional   PutSmallFileRequestProto putSmallFile = 20;
   optional   GetSmallFileRequestProto getSmallFile = 21;
   optional   GetCommittedBlockLengthRequestProto getCommittedBlockLength = 22;
+
   optional   string encodedToken = 23;
+  optional   uint32 version = 24;
 }
 
 message ContainerCommandResponseProto {
@@ -248,8 +254,8 @@ message ContainerDataProto {
 }
 
 message Container2BCSIDMapProto {
-   // repeated Container2BCSIDMapEntryProto container2BCSID = 1;
-    map <int64, int64> container2BCSID = 1;
+  // repeated Container2BCSIDMapEntryProto container2BCSID = 1;
+  map <int64, int64> container2BCSID = 1;
 }
 
 enum ContainerType {
@@ -367,6 +373,10 @@ message ChunkInfo {
   required ChecksumData checksumData =5;
 }
 
+message ChunkInfoList {
+  repeated ChunkInfo chunks = 1;
+}
+
 message ChecksumData {
   required ChecksumType type = 1;
   required uint32 bytesPerChecksum = 2;
@@ -374,11 +384,11 @@ message ChecksumData {
 }
 
 enum ChecksumType {
-    NONE = 1;
-    CRC32 = 2;
-    CRC32C = 3;
-    SHA256 = 4;
-    MD5 = 5;
+  NONE = 1;
+  CRC32 = 2;
+  CRC32C = 3;
+  SHA256 = 4;
+  MD5 = 5;
 }
 
 message  WriteChunkRequestProto  {
@@ -390,15 +400,29 @@ message  WriteChunkRequestProto  {
 message  WriteChunkResponseProto {
 }
 
+enum ReadChunkVersion {
+  V0 = 0; // Response data is sent in a single ByteBuffer
+  V1 = 1; // Response data is split into multiple buffers
+}
+
 message  ReadChunkRequestProto  {
   required DatanodeBlockID blockID = 1;
   required ChunkInfo chunkData = 2;
+  optional ReadChunkVersion readChunkVersion = 3;
 }
 
 message  ReadChunkResponseProto {
   required DatanodeBlockID blockID = 1;
   required ChunkInfo chunkData = 2;
-  required bytes data = 3;
+  // Chunk data should be returned in one of the two for
+  oneof responseData {
+    bytes data = 3; // Chunk data is returned as single buffer for V0
+    DataBuffers dataBuffers = 4; // Chunk data is returned as a list of buffers
+  }
+}
+
+message DataBuffers {
+  repeated bytes buffers = 1;
 }
 
 message  DeleteChunkRequestProto {
@@ -435,6 +459,7 @@ message PutSmallFileResponseProto {
 
 message GetSmallFileRequestProto {
   required GetBlockRequestProto block = 1;
+  optional ReadChunkVersion readChunkVersion = 2;
 }
 
 message GetSmallFileResponseProto {
@@ -445,6 +470,7 @@ message CopyContainerRequestProto {
   required int64 containerID = 1;
   required uint64 readOffset = 2;
   optional uint64 len = 3;
+  optional uint32 version = 4;
 }
 
 message CopyContainerResponseProto {
@@ -459,7 +485,7 @@ message CopyContainerResponseProto {
 service XceiverClientProtocolService {
   // A client-to-datanode RPC to send container commands
   rpc send(stream ContainerCommandRequestProto) returns
-    (stream ContainerCommandResponseProto) {};
+      (stream ContainerCommandResponseProto) {};
 
 }
 

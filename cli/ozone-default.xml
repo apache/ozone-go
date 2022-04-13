@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+<!-- Do not modify this file directly.  Instead, copy entries that you -->
+<!-- wish to modify from this file into ozone-site.xml and change them -->
+<!-- there.  If ozone-site.xml does not already exist, create it.      -->
+
+<!--Tags supported are OZONE, CBLOCK, MANAGEMENT, SECURITY, PERFORMANCE,   -->
+<!--DEBUG, CLIENT, SERVER, OM, SCM, CRITICAL, RATIS, CONTAINER, REQUIRED, -->
+<!--REST, STORAGE, PIPELINE, STANDALONE                                    -->
+
+<configuration>
+
+    <property>
+        <name>ozone.om.ratis.enable</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>ozone.om.service.ids</name>
+        <value>devom</value>
+        <tag>OM, HA</tag>
+        <description>
+            Comma-separated list of OM service Ids. This property allows the client
+            to figure out quorum of OzoneManager address.
+        </description>
+    </property>
+    <property>
+        <name>ozone.om.internal.service.id</name>
+        <value>devom</value>
+    </property>
+
+    <property>
+        <name>ozone.om.nodes.devom</name>
+        <value>devom1,devom2,devom3</value>
+        <tag>OM, HA</tag>
+        <description>
+            Comma-separated list of OM node Ids for a given OM service ID (eg.
+            EXAMPLEOMSERVICEID). The OM service ID should be the value (one of the
+            values if there are multiple) set for the parameter ozone.om.service.ids.
+
+            Unique identifiers for each OM Node, delimited by commas. This will be
+            used by OzoneManagers in HA setup to determine all the OzoneManagers
+            belonging to the same OMservice in the cluster. For example, if you
+            used “omService1” as the OM service ID previously, and you wanted to
+            use “om1”, “om2” and "om3" as the individual IDs of the OzoneManagers,
+            you would configure a property ozone.om.nodes.omService1, and its value
+            "om1,om2,om3".
+        </description>
+    </property>
+
+    <property>
+        <name>ozone.om.node.id</name>
+        <value>devom1</value>
+        <tag>OM, HA</tag>
+        <description>
+            The ID of this OM node. If the OM node ID is not configured it
+            is determined automatically by matching the local node's address
+            with the configured address.
+
+            If node ID is not deterministic from the configuration, then it is set
+            to default node id - om1.
+        </description>
+    </property>
+    <property>
+        <name>ozone.om.address.devom.devom1</name>
+        <value>host1:9870</value>
+        <tag>OM, REQUIRED</tag>
+        <description>
+            The address of the Ozone OM service. This allows clients to discover
+            the address of the OM.
+        </description>
+    </property>
+    <property>
+        <name>ozone.om.address.devom.devom2</name>
+        <value>host2:9870</value>
+    </property>
+    <property>
+        <name>ozone.om.address.devom.devom3</name>
+        <value>host3:9870</value>
+    </property>
+
+</configuration>

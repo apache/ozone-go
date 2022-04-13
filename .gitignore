@@ -2,7 +2,12 @@
 vendor
 ozone.so
 ozone.h
+api/vendor
 lib/lib
 lib/lib.h
+lib/vendor
+cli/github.com/apache/ozone-go
 cli/ozone-go
+cli/ozone-site.xml
+cli/vendor
 fuse/ozone-fuse/ozone-fuse

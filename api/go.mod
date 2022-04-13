@@ -16,17 +16,23 @@
 
 module github.com/apache/ozone-go/api
 
-go 1.13
+go 1.18
 
 require (
+	github.com/Mengqi777/xmlconfig v1.0.4
+	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.4.3
-	github.com/hortonworks/gohadoop v0.0.0-20180913181356-4e92e1475b38
+	github.com/google/uuid v1.1.2
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
-	github.com/stretchr/testify v1.7.0
-	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
-	golang.org/x/sys v0.0.0-20210313202042-bd2e13477e9c // indirect
-	golang.org/x/text v0.3.5 // indirect
-	google.golang.org/genproto v0.0.0-20210312152112-fc591d9ea70f // indirect
+	github.com/sirupsen/logrus v1.8.1
 	google.golang.org/grpc v1.36.0
 	google.golang.org/protobuf v1.25.0
+)
+
+require (
+	github.com/agiledragon/gomonkey/v2 v2.2.0
+	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4 // indirect
+	golang.org/x/sys v0.0.0-20210510120138-977fb7262007
+	golang.org/x/text v0.3.5 // indirect
+	google.golang.org/genproto v0.0.0-20210312152112-fc591d9ea70f // indirect
 )

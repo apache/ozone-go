@@ -17,12 +17,22 @@
  */
 syntax = "proto3";
 option go_package = "github.com/apache/ozone-go/api/proto/ratis";
-
+option java_package = "org.apache.ratis.proto";
+option java_outer_classname = "RaftProtos";
+option java_generate_equals_and_hash = true;
 package ratis.common;
 
 message RaftPeerProto {
   bytes id = 1;      // id of the peer
-  string address = 2; // e.g. IP address, hostname etc.
+  string address = 2; // e.g. address of the RPC server
+  uint32 priority = 3; // priority of the peer
+  string dataStreamAddress = 4; // address of the data stream server
+  string clientAddress = 5; // address of the client RPC server
+  string adminAddress = 6; // address of the admin RPC server
+}
+
+message RaftPeerIdProto {
+  bytes id = 1;      // id of the peer
 }
 
 message RaftGroupIdProto {
@@ -45,15 +55,15 @@ message RaftConfigurationProto {
 }
 
 message StateMachineEntryProto {
-   /**
-    * StateMachine specific data which is not written to log.
-    * Unlike logEntryData, stateMachineData is managed and stored by the StateMachine but not the RaftLog.
-    */
+  /**
+   * StateMachine specific data which is not written to log.
+   * Unlike logEntryData, stateMachineData is managed and stored by the StateMachine but not the RaftLog.
+   */
   bytes stateMachineData = 1;
-   /**
-    * When stateMachineData is missing, it is the size of the serialized LogEntryProto along with stateMachineData.
-    * When stateMachineData is not missing, it must be set to zero.
-    */
+  /**
+   * When stateMachineData is missing, it is the size of the serialized LogEntryProto along with stateMachineData.
+   * When stateMachineData is not missing, it must be set to zero.
+   */
   uint32 logEntryProtoSerializedSize = 2;
 }
 
@@ -67,6 +77,12 @@ message StateMachineLogEntryProto {
    */
   StateMachineEntryProto stateMachineEntry = 2;
 
+  enum Type {
+    WRITE = 0;
+    DATASTREAM = 1;
+  }
+
+  Type type = 13;
   // clientId and callId are used to rebuild the retry cache.
   bytes clientId = 14;
   uint64 callId = 15;
@@ -97,7 +113,10 @@ message RaftRpcRequestProto {
   bytes replyId = 2;
   RaftGroupIdProto raftGroupId = 3;
   uint64 callId = 4;
+  bool toLeader = 5;
 
+  uint64 timeoutMs = 13;
+  RoutingTableProto routingTable = 14;
   SlidingWindowEntry slidingWindowEntry = 15;
 }
 
@@ -131,12 +150,15 @@ enum InstallSnapshotResult {
   IN_PROGRESS = 2;
   ALREADY_INSTALLED = 3;
   CONF_MISMATCH = 4;
+  SNAPSHOT_INSTALLED = 5;
+  SNAPSHOT_UNAVAILABLE = 6;
 }
 
 message RequestVoteRequestProto {
   RaftRpcRequestProto serverRequest = 1;
   uint64 candidateTerm = 2;
   TermIndexProto candidateLastEntry = 3;
+  bool preVote = 4;
 }
 
 message RequestVoteReplyProto {
@@ -166,7 +188,7 @@ message AppendEntriesReplyProto {
     SUCCESS = 0;
     NOT_LEADER = 1; // the requester's term is not large enough
     INCONSISTENCY = 2; // gap between the local log and the entries or snapshot installation in progress or
-                       // overlap between local snapshot and the entries
+    // overlap between local snapshot and the entries
   }
 
   RaftRpcReplyProto serverReply = 1;
@@ -175,6 +197,7 @@ message AppendEntriesReplyProto {
   AppendResult result = 4;
   uint64 followerCommit = 5;
   uint64 matchIndex = 6;
+  bool isHearbeat = 7;
 }
 
 message InstallSnapshotRequestProto {
@@ -199,6 +222,8 @@ message InstallSnapshotRequestProto {
     SnapshotChunkProto snapshotChunk = 3;
     NotificationProto notification = 4;
   }
+
+  LogEntryProto lastRaftConfigurationLogEntryProto = 5;
 }
 
 message InstallSnapshotReplyProto {
@@ -244,6 +269,18 @@ enum RaftPeerRole {
 message WriteRequestTypeProto {
 }
 
+message MessageStreamRequestTypeProto {
+  uint64 streamId = 1;  // the id of this stream
+  uint64 messageId = 2; // the message id within a particular stream.
+  bool endOfRequest = 3;// Is this the end-of-request?
+}
+
+message DataStreamRequestTypeProto {
+}
+
+message ForwardRequestTypeProto {
+}
+
 message ReadRequestTypeProto {
 }
 
@@ -256,6 +293,15 @@ message WatchRequestTypeProto {
   ReplicationLevel replication = 2;
 }
 
+message RouteProto {
+  RaftPeerIdProto peerId = 1;
+  repeated RaftPeerIdProto successors = 2;
+}
+
+message RoutingTableProto {
+  repeated RouteProto routes = 1;
+}
+
 // normal client request
 message RaftClientRequestProto {
   RaftRpcRequestProto rpcRequest = 1;
@@ -266,7 +312,39 @@ message RaftClientRequestProto {
     ReadRequestTypeProto read = 4;
     StaleReadRequestTypeProto staleRead = 5;
     WatchRequestTypeProto watch = 6;
+    MessageStreamRequestTypeProto messageStream = 7;
+    DataStreamRequestTypeProto dataStream = 8;
+    ForwardRequestTypeProto forward = 9;
   }
+}
+
+message DataStreamPacketHeaderProto {
+  enum Type {
+    STREAM_HEADER = 0;
+    STREAM_DATA = 1;
+  }
+
+  enum Option {
+    SYNC = 0;
+    CLOSE = 1;
+  }
+
+  bytes clientId = 1;
+  Type type = 2;
+  uint64 streamId = 3;
+  uint64 streamOffset = 4;
+  uint64 dataLength = 5;
+  repeated Option options = 6;
+}
+
+message DataStreamRequestHeaderProto {
+  DataStreamPacketHeaderProto packetHeader = 1;
+}
+
+message DataStreamReplyHeaderProto {
+  DataStreamPacketHeaderProto packetHeader = 1;
+  uint64 bytesWritten = 2;
+  bool success = 3;
 }
 
 message NotLeaderExceptionProto {
@@ -290,6 +368,19 @@ message StateMachineExceptionProto {
   bytes stacktrace = 3;
 }
 
+message AlreadyClosedExceptionProto {
+  string exceptionClassName = 1;
+  string errorMsg = 2;
+  bytes stacktrace = 3;
+}
+
+message ThrowableProto {
+  string className = 1;
+  string errorMessage = 2;
+  bytes stackTrace = 3;
+  bytes cause = 4;
+}
+
 message RaftClientReplyProto {
   RaftRpcReplyProto rpcReply = 1;
   ClientMessageEntryProto message = 2;
@@ -299,6 +390,10 @@ message RaftClientReplyProto {
     NotReplicatedExceptionProto notReplicatedException = 4;
     StateMachineExceptionProto stateMachineException = 5;
     LeaderNotReadyExceptionProto leaderNotReadyException = 6;
+    AlreadyClosedExceptionProto alreadyClosedException = 7;
+    ThrowableProto dataStreamException = 8;
+    ThrowableProto leaderSteppingDownException = 9;
+    ThrowableProto transferLeadershipException = 10;
   }
 
   uint64 logIndex = 14; // When the request is a write request and the reply is success, the log index of the transaction
@@ -311,6 +406,21 @@ message SetConfigurationRequestProto {
   repeated RaftPeerProto peers = 2;
 }
 
+// transfer leadership request
+message TransferLeadershipRequestProto {
+  RaftRpcRequestProto rpcRequest = 1;
+  RaftPeerProto newLeader = 2;
+}
+
+message StartLeaderElectionRequestProto {
+  RaftRpcRequestProto serverRequest = 1;
+  TermIndexProto leaderLastEntry = 2;
+}
+
+message StartLeaderElectionReplyProto {
+  RaftRpcReplyProto serverReply = 1;
+}
+
 // A request to add a new group
 message GroupAddRequestProto {
   RaftGroupProto group = 1; // the group to be added.
@@ -319,6 +429,7 @@ message GroupAddRequestProto {
 message GroupRemoveRequestProto {
   RaftGroupIdProto groupId = 1; // the group to be removed.
   bool deleteDirectory = 2; // delete the directory for that group?
+  bool renameDirectory = 3; // rename the directory if not deleted.
 }
 
 message GroupManagementRequestProto {
@@ -347,6 +458,7 @@ message ServerRpcProto {
 
 message LeaderInfoProto {
   repeated ServerRpcProto followerInfo = 1;
+  uint64 term = 2;
 }
 
 message FollowerInfoProto {
