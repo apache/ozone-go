@@ -106,11 +106,12 @@ func bucketFromProto(bktProto *ozone_proto.BucketInfo) *common.Bucket {
         BucketName:       bktProto.GetBucketName(),
         StorageType:      bktProto.GetStorageType().String(),
         QuotaInBytes:     utils.BytesToHuman(uint64(bktProto.GetQuotaInBytes())),
-        UsedBytes:        utils.BytesToHuman(bktProto.GetUsedBytes()),
+        UsedBytes:        bktProto.GetUsedBytes(),
+        UsedBytesHuman:   utils.BytesToHuman(bktProto.GetUsedBytes()),
         QuotaInNamespace: bktProto.GetQuotaInNamespace(),
         UsedNamespace:    bktProto.GetUsedNamespace(),
         CreationTime:     ct,
         ModificationTime: mt,
         BucketLayout:     bktProto.GetBucketLayout().String(),
-	}
+    }
 }

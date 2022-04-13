@@ -19,10 +19,10 @@ package api
 import (
     "errors"
     "fmt"
-    "io"
     "github.com/apache/ozone-go/api/common"
     "github.com/apache/ozone-go/api/config"
     ozoneIo "github.com/apache/ozone-go/api/io"
+    "io"
 )
 
 // ListKeys TODO
@@ -132,7 +132,7 @@ func (ozoneClient *OzoneClient) PutKey(volume string, bucket string, key string,
     }
     if n != length {
         return fmt.Errorf("write data error: key data size %d but write len %d", length, n)
-	} else {
-		return nil
-	}
+    } else {
+        return nil
+    }
 }

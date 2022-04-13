@@ -350,6 +350,9 @@ func (b *BlockOutputStream) getNotFlushedAckData() []byte {
 }
 
 func (b *BlockOutputStream) flush(close bool) error {
+    if len(b.chunks) == 0 {
+        return nil
+    }
     if b.totalDataFlushedLength == 0 ||
         b.totalDataFlushedLength < b.writtenDataLength ||
         b.chunks[b.chunkIndex].HasRemaining() {

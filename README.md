@@ -25,11 +25,19 @@ Status:
   * shared lib / python: very basic example, poc
 
 ## Testing with cli:
+Config your ozone cluster in ozone-default.xml, replace ratis om host and cp ozone-default.xml to ozone-site.xml.
 
 ```
 cd cli
 ./build.sh
-./github.com/apache/ozone-go --om localhost volume create vol1
+./ozone-go -h
+./ozone-go sh vol list volumn
+./ozone-go sh bucket list volumn/bucket
+./ozone-go sh key list volumn/bucket
+./ozone-go sh key info volumn/bucket/key
+./ozone-go sh key get volumn/bucket/key ./file
+./ozone-go sh key put volumn/bucket/key ./file
+./ozone-go fs ls /volumn/bucket
 ```
 
 Or you can install it:

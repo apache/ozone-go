@@ -19,10 +19,10 @@ package main
 // import "github.com/apache/ozone-go"
 import (
     "fmt"
-    "os"
-    "os/user"
     "github.com/apache/ozone-go/api/config"
     "github.com/apache/ozone-go/api/utils"
+    "os"
+    "os/user"
     "strings"
 
     log "github.com/sirupsen/logrus"
@@ -40,7 +40,7 @@ const Commit = "love"
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
-    Use:   "github.com/apache/ozone-go",
+    Use:   "ozone-go",
     Short: "Native Ozone command line client",
 }
 
@@ -123,9 +123,9 @@ func init() {
     RootCmd.PersistentFlags().StringVar(&config.LogLevel, "loglevel",
         "INFO", "log level, default INFO")
     RootCmd.PersistentFlags().StringVar(&config.User, "user", "", "current user")
-	cobra.OnInitialize(InitConfig)
+    cobra.OnInitialize(InitConfig)
 }
 
 func main() {
-	Execute()
+    Execute()
 }

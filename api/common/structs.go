@@ -19,12 +19,13 @@ package common
 import (
     "encoding/json"
     "fmt"
-    "os"
     "github.com/apache/ozone-go/api/config"
     "github.com/apache/ozone-go/api/proto/hdds"
     "github.com/apache/ozone-go/api/proto/ozone"
     "github.com/apache/ozone-go/api/utils"
+    "os"
     "path"
+    "strconv"
     "strings"
 
     log "github.com/sirupsen/logrus"
@@ -56,7 +57,7 @@ const (
 
 // FriendlyFileInfo TODO
 type FriendlyFileInfo interface {
-    FriendlyFileInfoString() string
+    FriendlyFileInfoString(humanReadable bool) string
 }
 
 // Acl client acl struct
@@ -85,7 +86,7 @@ func (v Volume) String() string {
 }
 
 // FriendlyFileInfoString friendly volume fs string
-func (v Volume) FriendlyFileInfoString() string {
+func (v Volume) FriendlyFileInfoString(humanReadable bool) string {
     mode := "drwx-rw-x"
     return fmt.Sprintf("%s \t %s \t %d \t %s \t %s \t %s \t %s", mode,
         v.QuotaInBytes, v.UsedNamespace, v.Owner, v.CreationTime, v.ModificationTime, sep+v.VolumeName)
@@ -97,7 +98,8 @@ type Bucket struct {
     BucketName       string `json:"bucket_name"`
     StorageType      string `json:"storage_type"`
     QuotaInBytes     string `json:"quota_in_bytes"`
-    UsedBytes        string `json:"used_bytes"`
+    UsedBytes        uint64 `json:"used_bytes"`
+    UsedBytesHuman   string `json:"used_bytes_human"`
     QuotaInNamespace int64  `json:"quota_in_namespace"`
     UsedNamespace    uint64 `json:"used_namespace"`
     CreationTime     string `json:"creation_time"`
@@ -111,10 +113,14 @@ func (b Bucket) String() string {
 }
 
 // FriendlyFileInfoString friendly bucket fs string
-func (b Bucket) FriendlyFileInfoString() string {
+func (b Bucket) FriendlyFileInfoString(humanReadable bool) string {
     mode := "drwx-rw-x"
+    usedBytes := strconv.FormatUint(b.UsedBytes, 10)
+    if humanReadable {
+        usedBytes = b.UsedBytesHuman
+    }
     return fmt.Sprintf("%s \t %s \t %d \t %s \t %s \t%s \t%s",
-        mode, b.UsedBytes, b.UsedNamespace, b.CreationTime, b.ModificationTime, b.BucketLayout,
+        mode, usedBytes, b.UsedNamespace, b.CreationTime, b.ModificationTime, b.BucketLayout,
         sep+b.VolumeName+sep+b.BucketName)
 }
 
@@ -137,10 +143,16 @@ func (k Key) String() string {
 }
 
 // FriendlyFileInfoString friendly key fs string
-func (k Key) FriendlyFileInfoString() string {
+func (k Key) FriendlyFileInfoString(humanReadable bool) string {
     mode := "orwx-rw-x"
-    return fmt.Sprintf("%s \t %d \t %d \t %s \t %s \t%s \t%s",
-        mode, k.ReplicationFactor, k.DataSize, k.DataSizeFriendly, k.CreationTime, k.ModificationTime,
+    size := strconv.FormatUint(k.DataSize, 10)
+    replicaSize := strconv.FormatUint(k.DataSize*uint64(k.ReplicationFactor), 10)
+    if humanReadable {
+        size = utils.BytesToHuman(k.DataSize)
+        replicaSize = utils.BytesToHuman(k.DataSize * uint64(k.ReplicationFactor))
+    }
+    return fmt.Sprintf("%s \t %d \t %s \t %s \t %s \t%s \t%s",
+        mode, k.ReplicationFactor, size, replicaSize, k.CreationTime, k.ModificationTime,
         sep+k.VolumeName+sep+k.BucketName+sep+k.Name)
 }
 
@@ -165,9 +177,13 @@ func (o *OzoneFileInfo) String() string {
 }
 
 // FriendlyFileInfoString convert size to human read
-func (o *OzoneFileInfo) FriendlyFileInfoString() string {
-    size := utils.BytesToHuman(o.Size)
-    replicaSize := utils.BytesToHuman(o.Size * uint64(o.Replica))
+func (o *OzoneFileInfo) FriendlyFileInfoString(humanReadable bool) string {
+    size := strconv.FormatUint(o.Size, 10)
+    replicaSize := strconv.FormatUint(o.Size*uint64(o.Replica), 10)
+    if humanReadable {
+        size = utils.BytesToHuman(o.Size)
+        replicaSize = utils.BytesToHuman(o.Size * uint64(o.Replica))
+    }
     mTime := utils.MillisecondFormatToString(int64(o.ModifyTime), utils.TimeFormatterSECOND)
     return fmt.Sprintf("%s \t%d \t%s \t %s \t %s \t%s \t%s \t%s",
         o.Mode, o.Replica, size, replicaSize, o.Owner, o.Group, mTime, o.Path)
@@ -215,7 +231,7 @@ func OzoneObjectAddressFromFsPath(originPath string) OzoneObjectAddress {
 
 // OzoneObjectAddressFromPath like: vol/bucket/key
 func OzoneObjectAddressFromPath(originPath string) OzoneObjectAddress {
-    return OzoneObjectAddressFromFsPath(originPath)
+    return OzoneObjectAddressFromFsPath(sep + originPath)
 }
 
 // IsEmpty TODO
@@ -275,6 +291,6 @@ type KeyArgs struct {
     SortDatanodesInPipeline   bool
     Acls                      []*ozone.OzoneAclInfo
     LatestVersionLocation     bool
-	Recursive                 bool
-	HeadOp                    bool
+    Recursive                 bool
+    HeadOp                    bool
 }

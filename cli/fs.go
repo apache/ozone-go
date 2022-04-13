@@ -18,10 +18,10 @@ package main
 
 import (
     "fmt"
-    "os"
     "github.com/apache/ozone-go/api"
     "github.com/apache/ozone-go/api/common"
     "github.com/apache/ozone-go/api/config"
+    "os"
     "text/tabwriter"
 
     "github.com/spf13/cobra"
@@ -31,6 +31,7 @@ const fsOpName = "fs"
 
 var lsLimit = uint64(1024)
 var startKey = ""
+var humanReadable = false
 
 var fsListCommand = &cobra.Command{
     Use:     "list",
@@ -55,7 +56,7 @@ func listFiles(args []string) error {
                 fmt.Println(fmt.Sprintf("Found %d items", len(files)))
                 lines := make([]string, 0)
                 for _, f := range files {
-                    lines = append(lines, f.FriendlyFileInfoString())
+                    lines = append(lines, f.FriendlyFileInfoString(humanReadable))
                 }
                 PrettyPrintFiles(lines)
             }
@@ -66,7 +67,7 @@ func listFiles(args []string) error {
                 fmt.Println(fmt.Sprintf("Found %d items", len(files)))
                 lines := make([]string, 0)
                 for _, f := range files {
-                    lines = append(lines, f.FriendlyFileInfoString())
+                    lines = append(lines, f.FriendlyFileInfoString(humanReadable))
                 }
                 PrettyPrintFiles(lines)
             }
@@ -77,7 +78,7 @@ func listFiles(args []string) error {
                 fmt.Println(fmt.Sprintf("Found %d items", len(files)))
                 lines := make([]string, 0)
                 for _, f := range files {
-                    lines = append(lines, f.FriendlyFileInfoString())
+                    lines = append(lines, f.FriendlyFileInfoString(humanReadable))
                 }
                 PrettyPrintFiles(lines)
             }
@@ -97,6 +98,7 @@ func PrettyPrintFiles(lines []string) {
 
 func init() {
     FsCmd.AddCommand(fsListCommand)
+    fsListCommand.Flags().BoolVarP(&humanReadable, "humanReadable", "H", false, "human read for data size")
     fsListCommand.Flags().Uint64VarP(&lsLimit, "lsLimit", "n", 1024, "number of list")
     fsListCommand.Flags().StringVarP(&startKey, "startKey", "s", "", "startKey to list")
 }
