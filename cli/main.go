@@ -18,215 +18,114 @@ package main
 
 // import "github.com/apache/ozone-go"
 import (
-	"encoding/json"
-	"fmt"
-	"github.com/apache/ozone-go/api"
-	"github.com/urfave/cli"
-	"os"
-	"strings"
+    "fmt"
+    "os"
+    "os/user"
+    "github.com/apache/ozone-go/api/config"
+    "github.com/apache/ozone-go/api/utils"
+    "strings"
+
+    log "github.com/sirupsen/logrus"
+    "github.com/spf13/cobra"
 )
 
-var version string
-var commit string
-var date string
+// Version TODO
+const Version = "v1.0.0"
+
+// Date TODO
+const Date = "20220218"
+
+// Commit TODO
+const Commit = "love"
+
+// RootCmd represents the base command when called without any subcommands
+var RootCmd = &cobra.Command{
+    Use:   "github.com/apache/ozone-go",
+    Short: "Native Ozone command line client",
+}
+
+// ShCmd TODO
+var ShCmd = &cobra.Command{
+    Use:   "sh",
+    Short: "Command line interface for object store operations",
+}
+
+// FsCmd TODO
+var FsCmd = &cobra.Command{
+    Use:   "fs",
+    Short: "Run a filesystem command on Ozone file system. Equivalent to 'hadoop fs'",
+}
+
+// VersionCmd TODO
+var VersionCmd = &cobra.Command{
+    Use:   "version",
+    Short: fmt.Sprintf("%s (%s, %s)", Version, Commit, Date),
+    Run: func(cmd *cobra.Command, args []string) {
+        fmt.Println(cmd.Short)
+    },
+}
+
+// InitConfig reads in config file and ENV variables if set.
+func InitConfig() {
+    if err := config.InitLog(); err != nil {
+        log.Errorf("init logrus config error: %v ", err)
+        os.Exit(1)
+    }
+    if len(config.User) == 0 {
+        if u, err := user.Current(); err == nil {
+            config.User = u.Name
+        } else {
+            log.Error(fmt.Sprintf("get current user error: %v ", err))
+            os.Exit(1)
+        }
+    }
+    if len(config.OmAddress) > 0 {
+        config.OmAddresses = strings.Split(config.OmAddress, ",")
+    } else {
+        if utils.Exists(config.ConfFilePath) {
+            config.OzoneConfig.ConfigPath = config.ConfFilePath
+            if err := config.OzoneConfig.LoadFromFile(); err != nil {
+                log.Error(fmt.Sprintf("parse config file %s error:%v", config.ConfFilePath, err))
+                os.Exit(1)
+            } else {
+                if len(config.OmAddress) == 0 {
+                    config.OmAddresses = config.OzoneConfig.GetOmAddresses()
+                    config.OmAddress = config.OzoneConfig.NextOmNode()
+                }
+            }
+        } else {
+            log.Error(fmt.Sprintf("ozone config file %s not found", config.ConfFilePath))
+            os.Exit(1)
+        }
+    }
+}
+
+// Execute adds all child commands to the rootPath command and sets flags appropriately.
+// This is called by main.main(). It only needs to happen once to the rootCmd.
+func Execute() {
+    if err := RootCmd.Execute(); err != nil {
+        fmt.Println(err)
+        os.Exit(1)
+    }
+}
+
+func init() {
+    RootCmd.AddCommand(VersionCmd)
+    RootCmd.AddCommand(FsCmd)
+    RootCmd.AddCommand(ShCmd)
+    ShCmd.AddCommand(VolumeCmd)
+    ShCmd.AddCommand(BucketCmd)
+    ShCmd.AddCommand(KeyCmd)
+    RootCmd.PersistentFlags().StringVar(&config.ConfFilePath, "config", "ozone-site.xml",
+        "config file")
+    RootCmd.PersistentFlags().StringVar(&config.OmAddress, "om_client", "",
+        "Ozone manager host address(host:port)")
+    RootCmd.PersistentFlags().StringVar(&config.LogLevel, "loglevel",
+        "INFO", "log level, default INFO")
+    RootCmd.PersistentFlags().StringVar(&config.User, "user", "", "current user")
+	cobra.OnInitialize(InitConfig)
+}
 
 func main() {
-
-	app := cli.NewApp()
-	app.Name = "ozone"
-	app.Usage = "Ozone command line client"
-	app.Description = "Native Ozone command line client"
-	app.Version = fmt.Sprintf("%s (%s, %s)", version, commit, date)
-	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:     "om",
-			Required: true,
-			Value:    "localhost",
-			Usage:    "Host (or host:port) address of the OzoneManager",
-		},
-	}
-	app.Commands = []cli.Command{
-		{
-			Name:    "volume",
-			Aliases: []string{"v", "vol"},
-			Usage:   "Ozone volume related operations",
-			Flags:   []cli.Flag{},
-			Subcommands: []cli.Command{
-				{
-					Name:    "list",
-					Aliases: []string{"ls"},
-					Usage:   "List volumes.",
-					Action: func(c *cli.Context) error {
-						ozoneClient := api.CreateOzoneClient(c.GlobalString("om"))
-						volumes, err := ozoneClient.ListVolumes()
-						if err != nil {
-							return err
-						}
-						for _, volume := range volumes {
-							println(volume.Name)
-						}
-						return nil
-					},
-				},
-				{
-					Name:    "create",
-					Aliases: []string{"mk"},
-					Usage:   "Create volume.",
-					Action: func(c *cli.Context) error {
-						ozoneClient := api.CreateOzoneClient(c.GlobalString("om"))
-						address := OzoneObjectAddressFromString(c.Args().Get(0))
-						err := ozoneClient.CreateVolume(*address.Volume)
-						if err != nil {
-							return err
-						}
-						return nil
-					},
-				},
-			},
-		},
-		{
-			Name:    "bucket",
-			Aliases: []string{"b"},
-			Usage:   "Ozone bucket related operations",
-			Flags:   []cli.Flag{},
-			Subcommands: []cli.Command{
-				{
-					Name:    "create",
-					Aliases: []string{"mk"},
-					Usage:   "Create bucket.",
-					Action: func(c *cli.Context) error {
-						ozoneClient := api.CreateOzoneClient(c.GlobalString("om"))
-						address := OzoneObjectAddressFromString(c.Args().Get(0))
-						err := ozoneClient.CreateBucket(*address.Volume, *address.Bucket)
-						if err != nil {
-							return err
-						}
-						return nil
-					},
-				},
-				{
-					Name:    "list",
-					Aliases: []string{"ls"},
-					Usage:   "List buckets",
-					Action: func(c *cli.Context) error {
-						ozoneClient := api.CreateOzoneClient(c.GlobalString("om"))
-						address := OzoneObjectAddressFromString(c.Args().Get(0))
-						buckets, err := ozoneClient.ListBucket(*address.Volume)
-						if err != nil {
-							return err
-						}
-						for _, bucket := range buckets {
-							println(bucket.Name)
-						}
-						return nil
-					},
-				},
-			},
-		},
-		{
-			Name:    "key",
-			Aliases: []string{"k"},
-			Usage:   "Ozone key related operations",
-			Flags:   []cli.Flag{},
-			Subcommands: []cli.Command{
-				{
-					Name:    "list",
-					Aliases: []string{"ls"},
-					Usage:   "List keys.",
-					Action: func(c *cli.Context) error {
-						ozoneClient := api.CreateOzoneClient(c.GlobalString("om"))
-						address := OzoneObjectAddressFromString(c.Args().Get(0))
-						keys, err := ozoneClient.ListKeys(*address.Volume, *address.Bucket)
-						if err != nil {
-							return err
-						}
-						out, err := json.MarshalIndent(keys, "", "   ")
-						if err != nil {
-							return err
-						}
-
-						println(string(out))
-						return nil
-					},
-				},
-				{
-					Name:    "info",
-					Aliases: []string{"show"},
-					Usage:   "Show information about one key",
-					Action: func(c *cli.Context) error {
-						ozoneClient := api.CreateOzoneClient(c.GlobalString("om"))
-						address := OzoneObjectAddressFromString(c.Args().Get(0))
-						key, err := ozoneClient.InfoKey(*address.Volume, *address.Bucket, *address.Key)
-						if err != nil {
-							return err
-						}
-						out, err := json.MarshalIndent(key, "", "   ")
-						if err != nil {
-							return err
-						}
-
-						println(string(out))
-						return nil
-					},
-				},
-				{
-					Name:    "cat",
-					Aliases: []string{"c"},
-					Usage:   "Show content of a file",
-					Action: func(c *cli.Context) error {
-						ozoneClient := api.CreateOzoneClient(c.GlobalString("om"))
-						address := OzoneObjectAddressFromString(c.Args().Get(0))
-						_, err := ozoneClient.GetKey(*address.Volume, *address.Bucket, *address.Key, os.Stdout)
-						if err != nil {
-							return err
-						}
-
-						return nil
-					},
-				},
-				{
-					Name:    "put",
-					Aliases: []string{"p"},
-					Usage:   "Put file to Ozone",
-					Action: func(c *cli.Context) error {
-						ozoneClient := api.CreateOzoneClient(c.GlobalString("om"))
-						address := OzoneObjectAddressFromString(c.Args().Get(0))
-						f, err := os.Open(c.Args().Get(1))
-						if err != nil {
-							return err
-						}
-						_, err = ozoneClient.PutKey(*address.Volume, *address.Bucket, *address.Key, f)
-						if err != nil {
-							return err
-						}
-
-						return nil
-					},
-				},
-			},
-		},
-	}
-	err := app.Run(os.Args)
-	if err != nil {
-		panic(err)
-	}
-}
-
-type OzoneObjectAddress struct {
-	Volume *string
-	Bucket *string
-	Key    *string
-}
-
-func OzoneObjectAddressFromString(get string) OzoneObjectAddress {
-	volumeBucketKey := strings.SplitN(get, "/", 3)
-	o := OzoneObjectAddress{Volume: &volumeBucketKey[0]}
-	if len(volumeBucketKey) > 1 {
-		o.Bucket = &volumeBucketKey[1]
-	}
-	if len(volumeBucketKey) > 2 {
-		o.Key = &volumeBucketKey[2]
-	}
-	return o
-
+	Execute()
 }

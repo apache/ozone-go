@@ -29,7 +29,7 @@ Status:
 ```
 cd cli
 ./build.sh
-./ozone-go --om localhost volume create vol1
+./github.com/apache/ozone-go --om localhost volume create vol1
 ```
 
 Or you can install it:
