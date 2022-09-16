@@ -16,56 +16,60 @@
 package main
 
 import (
-	"C"
-	"encoding/json"
-	"github.com/apache/ozone-go/api/om"
-	"math/rand"
+    "C"
+    "encoding/json"
+    "math/rand"
+
+    "github.com/apache/ozone-go/api/om_client"
 )
 
 func main() {
 
 }
 
-var connections = make(map[C.int]*om.OmClient)
+var connections = make(map[C.int]*om_client.OmClient)
 
+// GetKey TODO
 func GetKey(omhost *C.char, volume *C.char, bucket *C.char, key *C.char) {
-	println("Getting key")
-	omClient := om.CreateOmClient(C.GoString(omhost))
-	println("Connected to host " + C.GoString(omhost))
-	k, err := omClient.GetKey(C.GoString(volume), C.GoString(bucket), C.GoString(key))
-	if err != nil {
-		panic(err)
-	}
+    println("Getting key")
+    omClient := om_client.CreateOmClient(C.GoString(omhost))
+    println("Connected to host " + C.GoString(omhost))
+    k, err := omClient.GetKey(C.GoString(volume), C.GoString(bucket), C.GoString(key))
+    if err != nil {
+        panic(err)
+    }
 
-	out, err := json.MarshalIndent(k, "", "   ")
-	if err != nil {
-		panic(err)
-	}
+    out, err := json.MarshalIndent(k, "", "   ")
+    if err != nil {
+        panic(err)
+    }
 
-	println(string(out))
+    println(string(out))
 }
 
-//export CreateOmClient
+// CreateOmClient TODO
+// export CreateOmClient
 func CreateOmClient(omhost *C.char) C.int {
-	client := om.CreateOmClient(C.GoString(omhost))
+    client := om_client.CreateOmClient(C.GoString(omhost))
 
-	identifier := C.int(rand.Int63())
-	connections[identifier] = &client
-	return identifier
+    identifier := C.int(rand.Int63())
+    connections[identifier] = &client
+    return identifier
 }
 
-//export PrintKey
+// PrintKey TODO
+// export PrintKey
 func PrintKey(identifier C.int, volume *C.char, bucket *C.char, key *C.char) {
-	omClient := connections[identifier]
-	println(omClient)
-	k, err := omClient.GetKey(C.GoString(volume), C.GoString(bucket), C.GoString(key))
-	if err != nil {
-		panic(err)
-	}
-	out, err := json.MarshalIndent(k, "", "   ")
-	if err != nil {
-		panic(err)
-	}
+    omClient := connections[identifier]
+    println(omClient)
+    k, err := omClient.GetKey(C.GoString(volume), C.GoString(bucket), C.GoString(key))
+    if err != nil {
+        panic(err)
+    }
+    out, err := json.MarshalIndent(k, "", "   ")
+    if err != nil {
+        panic(err)
+    }
 
-	println(string(out))
+    println(string(out))
 }

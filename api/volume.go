@@ -1,3 +1,4 @@
+// Package api TODO
 // Licensed to the Apache Software Foundation (ASF) under one
 // or more contributor license agreements.  See the NOTICE file
 // distributed with this work for additional information
@@ -17,14 +18,17 @@ package api
 
 import "github.com/apache/ozone-go/api/common"
 
-func (ozoneClient *OzoneClient) ListVolumes() ([]common.Volume, error) {
-	return ozoneClient.OmClient.ListVolumes()
+// ListVolumes TODO
+func (ozoneClient *OzoneClient) ListVolumes() ([]*common.Volume, error) {
+    return ozoneClient.OmClient.ListVolumes()
 }
 
+// CreateVolume TODO
 func (ozoneClient *OzoneClient) CreateVolume(name string) error {
-	return ozoneClient.OmClient.CreateVolume(name)
+    return ozoneClient.OmClient.CreateVolume(name)
 }
 
-func (ozoneClient *OzoneClient) GetVolume(name string) (common.Volume, error) {
-	return ozoneClient.OmClient.GetVolume(name)
+// InfoVolume TODO
+func (ozoneClient *OzoneClient) InfoVolume(name string) (*common.Volume, error) {
+    return ozoneClient.OmClient.InfoVolume(name)
 }

@@ -1,26 +1,27 @@
-// Licensed to the Apache Software Foundation (ASF) under one
-// or more contributor license agreements.  See the NOTICE file
-// distributed with this work for additional information
-// regarding copyright ownership.  The ASF licenses this file
-// to you under the Apache License, Version 2.0 (the
-// "License"); you may not use this file except in compliance
-// with the License.  You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 module github.com/apache/ozone-go
 
-go 1.13
-
-replace github.com/apache/ozone-go/api => ../api
+go 1.18
 
 require (
-	github.com/apache/ozone-go/api v0.0.0-20201212100630-cee64fa835db
-	github.com/urfave/cli v1.22.5
+	github.com/sirupsen/logrus v1.8.1
+	github.com/spf13/cobra v1.3.0
+	github.com/apache/ozone-go/api v0.0.0-20220117020938-8682348be6c8
 )
+
+require (
+	github.com/Mengqi777/xmlconfig v1.0.4 // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/google/uuid v1.1.2 // indirect
+	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
+	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d // indirect
+	golang.org/x/sys v0.0.0-20211210111614-af8b64212486 // indirect
+	golang.org/x/text v0.3.7 // indirect
+	google.golang.org/genproto v0.0.0-20211208223120-3a66f561d7aa // indirect
+	google.golang.org/grpc v1.43.0 // indirect
+	google.golang.org/protobuf v1.27.1 // indirect
+)
+
+replace github.com/apache/ozone-go/api => ../api

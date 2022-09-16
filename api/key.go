@@ -1,3 +1,4 @@
+// Package api TODO
 // Licensed to the Apache Software Foundation (ASF) under one
 // or more contributor license agreements.  See the NOTICE file
 // distributed with this work for additional information
@@ -16,189 +17,122 @@
 package api
 
 import (
-	"errors"
-	"github.com/apache/ozone-go/api/common"
-	"github.com/apache/ozone-go/api/datanode"
-	dnproto "github.com/apache/ozone-go/api/proto/datanode"
-	"github.com/apache/ozone-go/api/proto/hdds"
-	omproto "github.com/apache/ozone-go/api/proto/ozone"
-	"io"
+    "errors"
+    "fmt"
+    "github.com/apache/ozone-go/api/common"
+    "github.com/apache/ozone-go/api/config"
+    ozoneIo "github.com/apache/ozone-go/api/io"
+    "io"
 )
 
-func (ozoneClient *OzoneClient) ListKeys(volume string, bucket string) ([]common.Key, error) {
-
-	keys, err := ozoneClient.OmClient.ListKeys(volume, bucket)
-	if err != nil {
-		return make([]common.Key, 0), err
-	}
-
-	ret := make([]common.Key, 0)
-	for _, r := range keys {
-		ret = append(ret, KeyFromProto(r))
-	}
-	return ret, nil
-
+// ListKeys TODO
+func (ozoneClient *OzoneClient) ListKeys(volume string, bucket string, prefix string, limit int32) ([]*common.Key,
+    error) {
+    return ozoneClient.OmClient.ListKeys(volume, bucket, prefix, limit)
 }
 
-func (ozoneClient *OzoneClient) ListKeysPrefix(volume string, bucket string, prefix string) ([]common.Key, error) {
-	keys, err := ozoneClient.OmClient.ListKeysPrefix(volume, bucket, prefix)
-	if err != nil {
-		return make([]common.Key, 0), err
-	}
-
-	ret := make([]common.Key, 0)
-	for _, r := range keys {
-		ret = append(ret, KeyFromProto(r))
-	}
-	return ret, nil
-
+// ListFiles TODO
+func (ozoneClient *OzoneClient) ListFiles(volume, bucket, key, startKey string, limit uint64) ([]*common.OzoneFileInfo,
+    error) {
+    return ozoneClient.OmClient.ListFiles(volume, bucket, key, startKey, limit)
 }
 
-func (ozoneClient *OzoneClient) InfoKey(volume string, bucket string, key string) (common.Key, error) {
-	k, err := ozoneClient.OmClient.GetKey(volume, bucket, key)
-	return KeyFromProto(k), err
+// InfoKey TODO
+func (ozoneClient *OzoneClient) InfoKey(volume, bucket, key string) (*common.Key, error) {
+    return ozoneClient.OmClient.InfoKey(volume, bucket, key)
 }
 
-func (ozoneClient *OzoneClient) GetKey(volume string, bucket string, key string, destination io.Writer) (common.Key, error) {
-	keyInfo, err := ozoneClient.OmClient.GetKey(volume, bucket, key)
-
-	if err != nil {
-		return common.Key{}, err
-	}
-
-	if len(keyInfo.KeyLocationList) == 0 {
-		return common.Key{}, errors.New("Get key returned with zero key location version " + volume + "/" + bucket + "/" + key)
-	}
-
-	if len(keyInfo.KeyLocationList[0].KeyLocations) == 0 {
-		return common.Key{}, errors.New("Key location doesn't have any datanode for key " + volume + "/" + bucket + "/" + key)
-	}
-	for _, location := range keyInfo.KeyLocationList[0].KeyLocations {
-		pipeline := location.Pipeline
-
-		dnBlockId := ConvertBlockId(location.BlockID)
-		dnClient, err := datanode.CreateDatanodeClient(pipeline)
-		chunks, err := dnClient.GetBlock(dnBlockId)
-		if err != nil {
-			return common.Key{}, err
-		}
-		for _, chunk := range chunks {
-			data, err := dnClient.ReadChunk(dnBlockId, chunk)
-			if err != nil {
-				return common.Key{}, err
-			}
-			destination.Write(data)
-		}
-		dnClient.Close()
-	}
-	return common.Key{}, nil
+// RenameKey TODO
+func (ozoneClient *OzoneClient) RenameKey(volume, bucket, key, toKeyName string) (string, error) {
+    return ozoneClient.OmClient.RenameKey(volume, bucket, key, toKeyName)
 }
 
-func ConvertBlockId(bid *hdds.BlockID) *dnproto.DatanodeBlockID {
-	id := dnproto.DatanodeBlockID{
-		ContainerID: bid.ContainerBlockID.ContainerID,
-		LocalID:     bid.ContainerBlockID.LocalID,
-	}
-	return &id
+// GetKey TODO
+func (ozoneClient *OzoneClient) GetKey(volume, bucket, key string, destination io.Writer) error {
+    keyInfo, err := ozoneClient.OmClient.LookupKey(volume, bucket, key)
+    if err != nil {
+        return err
+    }
+    if keyInfo == nil {
+        return fmt.Errorf("%s key not found", key)
+    }
+    if len(keyInfo.KeyLocationList) == 0 {
+        return errors.New("Get key returned with zero key location version " + volume + "/" + bucket + "/" +
+            key)
+    }
+    if len(keyInfo.KeyLocationList[0].KeyLocations) == 0 {
+        return errors.New("Key location doesn't have any datanode for key " + volume + "/" + bucket + "/" + key)
+    }
+    verifyChecksum := config.OzoneConfig.GetBool(config.OZONE_VERIFY_CHECKSUM_KEY, config.OZONE_VERIFY_CHECKSUM_DEFAULT)
+    keyInputStream := ozoneIo.NewKeyInputStream(keyInfo, ozoneClient.xceiverManager, verifyChecksum)
+    var n int64
+    if n, err = io.Copy(destination, keyInputStream); err != nil && err != io.EOF {
+        return err
+    }
+    dataSize := keyInfo.GetDataSize()
+    if uint64(n) != dataSize {
+        return fmt.Errorf("read data error: key data size %d but read len %d", n, dataSize)
+    } else {
+        return nil
+    }
 }
 
-func (ozoneClient *OzoneClient) PutKey(volume string, bucket string, key string, source io.Reader) (common.Key, error) {
-	createKey, err := ozoneClient.OmClient.CreateKey(volume, bucket, key)
-	if err != nil {
-		return common.Key{}, err
-	}
-
-	keyInfo := createKey.KeyInfo
-	location := keyInfo.KeyLocationList[0].KeyLocations[0]
-	pipeline := location.Pipeline
-
-	dnClient, err := datanode.CreateDatanodeClient(pipeline)
-	if err != nil {
-		return common.Key{}, err
-	}
-
-	chunkSize := 4096
-	buffer := make([]byte, chunkSize)
-
-	chunks := make([]*dnproto.ChunkInfo, 0)
-	keySize := uint64(0)
-
-	locations := make([]*omproto.KeyLocation, 0)
-
-	blockId := ConvertBlockId(location.BlockID)
-	eof := false
-
-	for {
-		blockOffset := uint64(0)
-		for i := 0; i < 64; i++ {
-			count, err := source.Read(buffer)
-			if err == io.EOF {
-				eof = true
-			} else if err != nil {
-				return common.Key{}, err
-			}
-			if count > 0 {
-				chunk, err := dnClient.CreateAndWriteChunk(blockId, blockOffset, buffer[0:count], uint64(count))
-				if err != nil {
-					return common.Key{}, err
-				}
-				blockOffset += uint64(count)
-				keySize += uint64(count)
-				chunks = append(chunks, &chunk)
-			}
-			if eof {
-				break
-			}
-		}
-
-		err = dnClient.PutBlock(blockId, chunks)
-		if err != nil {
-			return common.Key{}, err
-		}
-		if eof {
-			break
-		}
-
-		//get new block and reset counters
-
-		nextBlockResponse, err := ozoneClient.OmClient.AllocateBlock(volume, bucket, key, createKey.ID)
-		if err != nil {
-			return common.Key{}, err
-		}
-
-		dnClient.Close()
-		location = nextBlockResponse.KeyLocation
-		pipeline = location.Pipeline
-		dnClient, err = datanode.CreateDatanodeClient(pipeline)
-		if err != nil {
-			return common.Key{}, err
-		}
-		blockId = ConvertBlockId(location.BlockID)
-		blockOffset = 0
-		chunks = make([]*dnproto.ChunkInfo, 0)
-
-	}
-	zero := uint64(0)
-	locations = append(locations, &omproto.KeyLocation{
-		BlockID:  location.BlockID,
-		Pipeline: location.Pipeline,
-		Length:   &keySize,
-		Offset:   &zero,
-	})
-
-	ozoneClient.OmClient.CommitKey(volume, bucket, key, createKey.ID, locations, keySize)
-	return common.Key{}, nil
+// DeleteKey TODO
+func (ozoneClient *OzoneClient) DeleteKey(volume, bucket, key string) (string, error) {
+    return ozoneClient.OmClient.DeleteKey(volume, bucket, key)
 }
 
-func KeyFromProto(keyProto *omproto.KeyInfo) common.Key {
-	replicationType := common.ReplicationType(*keyProto.Type)
+// TouchzKey TODO
+func (ozoneClient *OzoneClient) TouchzKey(volume, bucket, key string) (*common.Key, error) {
+    return ozoneClient.OmClient.TouchzKey(volume, bucket, key)
+}
 
-	result := common.Key{
-		Name:        *keyProto.KeyName,
-		Replication: replicationType,
-		VolumeName:  *keyProto.VolumeName,
-		BucketName:  *keyProto.BucketName,
-		Size:        *keyProto.DataSize,
-	}
-	return result
+// PutKey TODO
+func (ozoneClient *OzoneClient) PutKey(volume string, bucket string, key string, length int64, source io.Reader) error {
+
+    createKey, err := ozoneClient.OmClient.CreateKey(volume, bucket, key)
+    if err != nil {
+        return err
+    }
+    ozoneClient.OmClient.Id = createKey.GetID()
+    keyInfo := createKey.GetKeyInfo()
+    bpc, err := config.OzoneConfig.GetBytesPerChecksum()
+    if err != nil {
+        return err
+    }
+    ckt := config.OzoneConfig.GetChecksumType()
+    checksumType := common.ChecksumTypeFromName(ckt).Enum()
+    bs, err := config.OzoneConfig.GetBlockSize()
+    if err != nil {
+        return err
+    }
+    cs, err := config.OzoneConfig.GetChunkSize()
+    if err != nil {
+        return err
+    }
+    sbfs, err := config.OzoneConfig.GetStreamBufferFlushSize()
+    if err != nil {
+        return err
+    }
+    sbms, err := config.OzoneConfig.GetStreamBufferMaxSize()
+    if err != nil {
+        return err
+    }
+    keyOutputStream, err := ozoneIo.NewKeyOutputStream(keyInfo, ozoneClient.xceiverManager, volume, bucket, key,
+        ozoneClient.OmClient, createKey.ID, length, checksumType, bs, cs, uint32(bpc), sbfs, sbms)
+    if err != nil {
+        return err
+    }
+    var n int64
+    if n, err = io.Copy(keyOutputStream, source); err != nil && err != io.EOF {
+        return err
+    }
+    if err = keyOutputStream.Close(); err != nil {
+        return err
+    }
+    if n != length {
+        return fmt.Errorf("write data error: key data size %d but write len %d", length, n)
+    } else {
+        return nil
+    }
 }
